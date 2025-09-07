@@ -1,13 +1,12 @@
 package com.peryloth.api;
 
-import com.peryloth.api.AuthFilter;
+import com.peryloth.jwtvalidation.login.IJwtTokenProvider;
+import com.peryloth.jwtvalidation.login.PasswordEncoder;
 import com.peryloth.model.rol.Rol;
 import com.peryloth.model.rol.gateways.RolRepository;
 import com.peryloth.model.usuario.Usuario;
-import com.peryloth.model.usuario.gateways.PasswordEncoder;
 import com.peryloth.model.usuario.gateways.UsuarioRepository;
-import com.peryloth.usecase.login.IJwtTokenProvider;
-import com.peryloth.usecase.validationclient.IValidateJwt;
+import com.peryloth.jwtvalidation.IValidateJwt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -24,8 +23,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigInteger;
-
-import static org.mockito.ArgumentMatchers.any;
 
 class AuthFilterTest {
 
@@ -78,7 +75,6 @@ class AuthFilterTest {
         HandlerFunction<ServerResponse> next = r -> ServerResponse.ok().build();
 
         // mocks
-        Mockito.when(validateJwt.validate(token)).thenReturn(Mono.just(true));
         Mockito.when(jwtTokenProvider.getUsernameFromToken(token)).thenReturn(Mono.just(email));
 
         Usuario usuario = new Usuario();

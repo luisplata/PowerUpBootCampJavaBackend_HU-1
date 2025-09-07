@@ -1,8 +1,9 @@
 package com.peryloth.jwtvalidation;
 
-import com.peryloth.model.usuario.gateways.PasswordEncoder;
-import com.peryloth.usecase.login.IJwtTokenProvider;
-import com.peryloth.usecase.validationclient.IValidateJwt;
+import com.peryloth.jwtvalidation.login.ILogin;
+import com.peryloth.jwtvalidation.login.PasswordEncoder;
+import com.peryloth.jwtvalidation.login.IJwtTokenProvider;
+import com.peryloth.model.usuario.gateways.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Component
 @RequiredArgsConstructor
-public class JwtValidacionAdapter implements IValidateJwt, IJwtTokenProvider, PasswordEncoder {
+public class JwtValidacionAdapter implements IValidateJwt, IJwtTokenProvider, PasswordEncoder, ILogin {
 
     private static final long EXPIRATION_TIME = 3600_000;
 
@@ -30,16 +31,21 @@ public class JwtValidacionAdapter implements IValidateJwt, IJwtTokenProvider, Pa
 
     private static final Key KEY_BY_MICRO = Keys.hmacShaKeyFor(JwtProperties.SECRET_KEY.getBytes(StandardCharsets.UTF_8));
 
+    private final UsuarioRepository usuarioRepository;
+
     @Override
-    public Mono<Boolean> validate(String jwt) {
+    public Mono<Void> validate(String jwt) {
         return Mono.justOrEmpty(jwt)
-                .filter(token -> token.startsWith("Bearer "))
-                .map(token -> token.substring(7))
-                .flatMap(JwtTokenProvider::validateTokenReactive) // 👈 directo flatMap
-                .onErrorResume(e -> {
-                    log.error("Error al validar JWT: {}", e.getMessage());
-                    return Mono.just(false);
-                });
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Token vacío")))
+                .flatMap(token -> JwtTokenProvider.validateTokenReactive(token) // devuelve Mono<Boolean>
+                        .flatMap(isValid -> {
+                            if (Boolean.TRUE.equals(isValid)) {
+                                return Mono.empty(); // éxito
+                            } else {
+                                return Mono.error(new IllegalArgumentException("Token inválido"));
+                            }
+                        })
+                );
     }
 
     public Mono<String> createToken(String email) {
@@ -80,5 +86,20 @@ public class JwtValidacionAdapter implements IValidateJwt, IJwtTokenProvider, Pa
     @Override
     public boolean matches(String rawPassword, String encodedPassword) {
         return encoder.matches(rawPassword, encodedPassword);
+    }
+
+    @Override
+    public Mono<String> login(String email, String password) {
+        return usuarioRepository.getUsuarioByEmail(email)
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Usuario no encontrado")))
+                .flatMap(usuario -> {
+                    System.out.println("Login - email: " + usuario.getEmail());
+                    System.out.println("Login - password enviado: " + password);
+                    System.out.println("Login - password hash en DB: " + usuario.getPasswordHash());
+                    if (this.matches(password, usuario.getPasswordHash())) {
+                        return this.createToken(usuario.getEmail());
+                    }
+                    return Mono.error(new IllegalArgumentException("Credenciales inválidas"));
+                });
     }
 }

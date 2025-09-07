@@ -1,13 +1,18 @@
 services:
   postgres-hu1:
     ports:
-      - "5433:5432"   # se expone en el host en 5433
+      - "5433:5432"
+
   app-service-hu1:
     ports:
-      - "8081:8080"   # se expone en el host en 8081
+      - "8081:8080"
     environment:
       POSTGRES_HOST: postgres-hu1
       POSTGRES_PORT: 5432
       POSTGRES_DB: perylothdb
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
+      JWT_PRIVATE_KEY_PATH: /app/secrets/jwt-private.pem
+      JWT_PUBLIC_KEY_PATH: /app/secrets/jwt-public.pem
+    volumes:
+      - ./secrets:/app/secrets:ro

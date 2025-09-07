@@ -1,4 +1,4 @@
-package com.peryloth.model.usuario.gateways;
+package com.peryloth.jwtvalidation.login;
 
 import com.peryloth.model.rol.Rol;
 

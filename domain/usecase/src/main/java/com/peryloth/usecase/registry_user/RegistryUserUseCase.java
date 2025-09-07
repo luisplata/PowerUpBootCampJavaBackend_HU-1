@@ -2,7 +2,6 @@ package com.peryloth.usecase.registry_user;
 
 import com.peryloth.model.rol.gateways.RolRepository;
 import com.peryloth.model.usuario.Usuario;
-import com.peryloth.model.usuario.gateways.PasswordEncoder;
 import com.peryloth.model.usuario.gateways.UsuarioRepository;
 import com.peryloth.usecase.registry_user.command_queue.UsuarioValidationQueue;
 import com.peryloth.usecase.registry_user.command_queue.validations.ApellidoValidation;
@@ -19,7 +18,6 @@ import java.math.BigInteger;
 public class RegistryUserUseCase implements IRegistryUserUseCase {
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
-    private final PasswordEncoder passwordEncoder;
 
     @Override
     public Mono<Usuario> registryUserAdmin(Usuario usuario) {
@@ -31,10 +29,6 @@ public class RegistryUserUseCase implements IRegistryUserUseCase {
         //TODO falta agregar validacion de documento de identidad que no exista ya en db
 
         BigInteger rolIdFijo = BigInteger.ONE;
-
-        System.out.println("Registro Admin - password antes de encriptar: " + usuario.getPasswordHash());
-        usuario.setPasswordHash(passwordEncoder.encode(usuario.getPasswordHash()));
-        System.out.println("Registro Admin - password despues de encriptar: " + usuario.getPasswordHash());
 
         return validationQueue.validate(usuario)
                 .then(rolRepository.getRolById(rolIdFijo)
@@ -55,8 +49,6 @@ public class RegistryUserUseCase implements IRegistryUserUseCase {
                 .addValidation(new SalarioBaseValidation());
 
         BigInteger rolIdFijo = BigInteger.TWO;
-
-        usuario.setPasswordHash(passwordEncoder.encode(usuario.getPasswordHash()));
 
         return validationQueue.validate(usuario)
                 .then(rolRepository.getRolById(rolIdFijo)

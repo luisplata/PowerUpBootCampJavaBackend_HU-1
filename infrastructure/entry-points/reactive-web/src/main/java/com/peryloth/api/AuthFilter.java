@@ -1,10 +1,10 @@
 package com.peryloth.api;
 
+import com.peryloth.jwtvalidation.login.IJwtTokenProvider;
+import com.peryloth.jwtvalidation.login.PasswordEncoder;
 import com.peryloth.model.rol.gateways.RolRepository;
-import com.peryloth.model.usuario.gateways.PasswordEncoder;
 import com.peryloth.model.usuario.gateways.UsuarioRepository;
-import com.peryloth.usecase.login.IJwtTokenProvider;
-import com.peryloth.usecase.validationclient.IValidateJwt;
+import com.peryloth.jwtvalidation.IValidateJwt;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.HandlerFilterFunction;

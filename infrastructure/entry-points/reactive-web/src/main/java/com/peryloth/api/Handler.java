@@ -8,8 +8,10 @@ import com.peryloth.api.dto.registry.UserValidationRequest;
 import com.peryloth.api.dto.registry.UsuarioRequestDTO;
 import com.peryloth.api.dto.validateToken.ValidateTokenResponseDTO;
 import com.peryloth.api.mapper.registry.UserDTOMapper;
+import com.peryloth.jwtvalidation.IValidateJwt;
+import com.peryloth.jwtvalidation.login.ILogin;
+import com.peryloth.jwtvalidation.login.PasswordEncoder;
 import com.peryloth.usecase.getusuerbyemail.IGetUsuerByEmailUseCase;
-import com.peryloth.usecase.login.ILogin;
 import com.peryloth.usecase.registry_user.IRegistryUserUseCase;
 import com.peryloth.usecase.validationclient.IValidationClientUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,8 +36,10 @@ public class Handler {
     private final IRegistryUserUseCase registryUserUseCase;
     private final UserDTOMapper userDTOMapper;
     private final IValidationClientUseCase validationClientUseCase;
-    private final ILogin loginUseCase;
     private final IGetUsuerByEmailUseCase iGetUsuerByEmailUseCase;
+    private final PasswordEncoder passwordEncoder;
+    private final ILogin loginUseCase;
+    private final IValidateJwt jwtTokenProvider;
 
     @Operation(
             summary = "Registrar un nuevo usuario",
@@ -54,6 +58,7 @@ public class Handler {
     public Mono<ServerResponse> saveAdmin(ServerRequest serverRequest) {
         return serverRequest.bodyToMono(UsuarioRequestDTO.class)
                 .doOnNext(dto -> log.debug("Payload recibido: {}", dto))
+                .map(dto -> dto.toBuilder().password(passwordEncoder.encode(dto.password())).build())
                 .flatMap(dto -> registryUserUseCase.registryUserAdmin(userDTOMapper.mapToEntity(dto))
                         .doOnSuccess(v -> log.info("Usuario registrado correctamente: {}", dto.email()))
                         .then(ServerResponse.ok().bodyValue("Usuario guardado correctamente"))
@@ -73,6 +78,7 @@ public class Handler {
 
         return serverRequest.bodyToMono(UsuarioRequestDTO.class)
                 .doOnNext(dto -> log.debug("Payload recibido: {}", dto))
+                .map(dto -> dto.toBuilder().password(passwordEncoder.encode(dto.password())).build())
                 .flatMap(dto -> registryUserUseCase.registryNormalUser(userDTOMapper.mapToEntity(dto))
                         .doOnSuccess(v -> log.info("Usuario registrado correctamente: {}", dto.email()))
                         .then(ServerResponse.ok().bodyValue("Usuario guardado correctamente"))
@@ -90,31 +96,29 @@ public class Handler {
     public Mono<ServerResponse> validateUser(ServerRequest request) {
         log.info("Iniciando validación de usuario");
 
-        return request.bodyToMono(UserValidationRequest.class)
+        return Mono.justOrEmpty(request.headers().firstHeader("Authorization"))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Token no proporcionado")))
+                .flatMap(jwtTokenProvider::validate)
+                .then(request.bodyToMono(UserValidationRequest.class))
                 .doOnNext(req -> log.debug("Payload validación recibido: {}", req))
-                .flatMap(usuarioRequest -> validationClientUseCase.isUserValid(
-                                        request.headers().firstHeader("Authorization"),
-                                        usuarioRequest.getId(),
-                                        usuarioRequest.getEmail()
+                .flatMap(usuarioRequest ->
+                        validationClientUseCase.isUserValid(usuarioRequest.getId(), usuarioRequest.getEmail())
+                                .flatMap(isUserValid ->
+                                        Boolean.TRUE.equals(isUserValid)
+                                                ? ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(true)
+                                                : ServerResponse.status(401).contentType(MediaType.APPLICATION_JSON).bodyValue(false)
                                 )
-                                .doOnNext(isValid -> log.info("Resultado validación usuario [{}]: {}", usuarioRequest.getEmail(), isValid))
-                                .flatMap(isValid -> {
-                                    if (Boolean.TRUE.equals(isValid)) {
-                                        return ServerResponse.ok()
-                                                .contentType(MediaType.APPLICATION_JSON)
-                                                .bodyValue(true);
-                                    } else {
-                                        return ServerResponse.status(401)
-                                                .contentType(MediaType.APPLICATION_JSON)
-                                                .bodyValue(false);
-                                    }
-                                })
                 )
+                .onErrorResume(IllegalArgumentException.class, e -> {
+                    log.warn("Error de validación: {}", e.getMessage());
+                    return ServerResponse.status(401).bodyValue("Error de validación: " + e.getMessage());
+                })
                 .onErrorResume(e -> {
-                    log.error("Error en validación de usuario", e);
+                    log.error("Error interno al validar usuario", e);
                     return ServerResponse.status(500).bodyValue("Error interno: " + e.getMessage());
                 });
     }
+
 
     public Mono<ServerResponse> login(ServerRequest request) {
         log.info("Iniciando login de usuario");

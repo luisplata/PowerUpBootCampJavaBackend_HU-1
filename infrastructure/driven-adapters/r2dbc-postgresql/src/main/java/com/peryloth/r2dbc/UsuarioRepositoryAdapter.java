@@ -2,7 +2,6 @@ package com.peryloth.r2dbc;
 
 import com.peryloth.model.rol.Rol;
 import com.peryloth.model.usuario.Usuario;
-import com.peryloth.model.usuario.gateways.PasswordEncoder;
 import com.peryloth.model.usuario.gateways.UsuarioRepository;
 import com.peryloth.r2dbc.entity.UsuarioEntity;
 import com.peryloth.r2dbc.helper.ReactiveAdapterOperations;

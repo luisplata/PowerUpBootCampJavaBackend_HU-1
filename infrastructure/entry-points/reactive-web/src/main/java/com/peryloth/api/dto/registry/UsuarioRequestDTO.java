@@ -1,7 +1,9 @@
 package com.peryloth.api.dto.registry;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.*;
 
+@Builder(toBuilder = true)
 public record UsuarioRequestDTO(
 
         @Schema(
