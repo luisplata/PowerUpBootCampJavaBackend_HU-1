@@ -1,4 +1,4 @@
-package com.peryloth.jwtvalidation.login;
+package com.peryloth.jwtvalidation;
 
 public interface PasswordEncoder {
     String encode(String rawPassword);

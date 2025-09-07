@@ -1,6 +1,28 @@
 package com.peryloth.jwtvalidation;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.security.Key;
+
+@Component
 public class JwtProperties {
-    //TODO sacar a un properties
-    public static final String SECRET_KEY = "bootcamp_java_super_secure_secret_key_123456";
+
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.expiration}")
+    private long expiration;
+
+    public String getSecret() {
+        return secret;
+    }
+
+    public long getExpiration() {
+        return expiration;
+    }
+    
+    public Key getKey() {
+        return io.jsonwebtoken.security.Keys.hmacShaKeyFor(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
 }

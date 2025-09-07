@@ -19,9 +19,10 @@ services:
     environment:
       POSTGRES_HOST: postgres-hu1
       POSTGRES_PORT: 5432
-      POSTGRES_DB: perylothdb
+      POSTGRES_DB: JWT_SECRET
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
+      JWT_SECRET: "bootcamp_java_super_secure_secret_key_123456"
     networks:
       - bootcamp_network
 

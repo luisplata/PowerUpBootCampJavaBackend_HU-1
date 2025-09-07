@@ -28,3 +28,6 @@ cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
 auth:
   number-login-max: 5
+jwt:
+  secret: ${JWT_SECRET:bootcamp_java_super_secure_secret_key_123456}
+  expiration: 3600000

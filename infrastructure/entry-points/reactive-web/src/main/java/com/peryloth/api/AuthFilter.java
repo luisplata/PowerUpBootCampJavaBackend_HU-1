@@ -1,7 +1,7 @@
 package com.peryloth.api;
 
-import com.peryloth.jwtvalidation.login.IJwtTokenProvider;
-import com.peryloth.jwtvalidation.login.PasswordEncoder;
+import com.peryloth.jwtvalidation.IJwtTokenProvider;
+import com.peryloth.jwtvalidation.PasswordEncoder;
 import com.peryloth.model.rol.gateways.RolRepository;
 import com.peryloth.model.usuario.gateways.UsuarioRepository;
 import com.peryloth.jwtvalidation.IValidateJwt;
@@ -12,6 +12,8 @@ import org.springframework.web.reactive.function.server.HandlerFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 @Component
 public class AuthFilter implements HandlerFilterFunction<ServerResponse, ServerResponse> {
@@ -32,36 +34,28 @@ public class AuthFilter implements HandlerFilterFunction<ServerResponse, ServerR
 
     @Override
     public Mono<ServerResponse> filter(ServerRequest request, HandlerFunction<ServerResponse> next) {
-        String authHeader = request.headers().firstHeader("Authorization");
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        String token = authHeader.substring(7);
-
         try {
-            return validateJwt.validate(authHeader).flatMap(isValid -> {
-                if (Boolean.TRUE.equals(isValid)) {
-                    return jwtTokenProvider.getUsernameFromToken(token).flatMap(email ->
-                            usuarioRepository.getUsuarioByEmail(email)
-                                    .switchIfEmpty(Mono.error(new IllegalArgumentException("Usuario no encontrado")))
-                                    .flatMap(usuario -> rolRepository.getRolById(usuario.getRol().getUniqueId())
-                                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Rol no encontrado")))
-                                            .flatMap(rol -> {
-                                                System.out.println("Rol del usuario: " + rol.getNombre());
-                                                if (rol.getUniqueId().intValue() != 1) {
-                                                    return ServerResponse.status(HttpStatus.FORBIDDEN).build();
-                                                }
-                                                // Aquí puedes agregar lógica adicional para verificar permisos según el rol
-                                                return next.handle(request); // 👈 SOLO pasa si usuario+rol existen
-                                            })
-                                    )
+            return Mono.justOrEmpty(request.headers().firstHeader("Authorization"))
+                    .switchIfEmpty(Mono.error(new IllegalArgumentException("Token no proporcionado")))
+                    .flatMap(validateJwt::validate)
+                    .then(Mono.just(request.headers().firstHeader("Authorization")))
+                    .switchIfEmpty(Mono.error(new IllegalArgumentException("Token no proporcionado")))
+                    .flatMap(auth -> jwtTokenProvider.getUsernameFromToken(auth).flatMap(email ->
+                                    usuarioRepository.getUsuarioByEmail(email)
+                                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Usuario no encontrado")))
+                                            .flatMap(usuario -> rolRepository.getRolById(usuario.getRol().getUniqueId())
+                                                    .switchIfEmpty(Mono.error(new IllegalArgumentException("Rol no encontrado")))
+                                                    .flatMap(rol -> {
+                                                        System.out.println("Rol del usuario: " + rol.getNombre());
+                                                        if (rol.getUniqueId().intValue() != 1) {
+                                                            return ServerResponse.status(HttpStatus.FORBIDDEN).build();
+                                                        }
+                                                        // Aquí puedes agregar lógica adicional para verificar permisos según el rol
+                                                        return next.handle(request); // 👈 SOLO pasa si usuario+rol existen
+                                                    })
+                                            )
+                            )
                     );
-                } else {
-                    return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
-                }
-            });
         } catch (Exception e) {
             return ServerResponse.status(HttpStatus.FORBIDDEN).build();
         }

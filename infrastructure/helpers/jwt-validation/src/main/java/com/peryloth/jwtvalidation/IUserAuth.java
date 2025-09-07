@@ -1,4 +1,4 @@
-package com.peryloth.jwtvalidation.login;
+package com.peryloth.jwtvalidation;
 
 import com.peryloth.model.rol.Rol;
 

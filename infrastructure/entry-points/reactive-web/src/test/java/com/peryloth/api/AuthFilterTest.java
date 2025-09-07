@@ -1,7 +1,7 @@
 package com.peryloth.api;
 
-import com.peryloth.jwtvalidation.login.IJwtTokenProvider;
-import com.peryloth.jwtvalidation.login.PasswordEncoder;
+import com.peryloth.jwtvalidation.IJwtTokenProvider;
+import com.peryloth.jwtvalidation.PasswordEncoder;
 import com.peryloth.model.rol.Rol;
 import com.peryloth.model.rol.gateways.RolRepository;
 import com.peryloth.model.usuario.Usuario;
