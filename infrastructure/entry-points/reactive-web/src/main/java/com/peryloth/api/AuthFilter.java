@@ -41,20 +41,22 @@ public class AuthFilter implements HandlerFilterFunction<ServerResponse, ServerR
                     .then(Mono.just(request.headers().firstHeader("Authorization")))
                     .switchIfEmpty(Mono.error(new IllegalArgumentException("Token no proporcionado")))
                     .flatMap(auth -> jwtTokenProvider.getUsernameFromToken(auth).flatMap(email ->
-                                    usuarioRepository.getUsuarioByEmail(email)
-                                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Usuario no encontrado")))
-                                            .flatMap(usuario -> rolRepository.getRolById(usuario.getRol().getUniqueId())
-                                                    .switchIfEmpty(Mono.error(new IllegalArgumentException("Rol no encontrado")))
-                                                    .flatMap(rol -> {
-                                                        System.out.println("Rol del usuario: " + rol.getNombre());
-                                                        if (rol.getUniqueId().intValue() != 1) {
-                                                            return ServerResponse.status(HttpStatus.FORBIDDEN).build();
-                                                        }
-                                                        // Aquí puedes agregar lógica adicional para verificar permisos según el rol
-                                                        return next.handle(request); // 👈 SOLO pasa si usuario+rol existen
-                                                    })
-                                            )
-                            )
+                                            usuarioRepository.getUsuarioByEmail(email)
+                                                    .switchIfEmpty(Mono.error(new IllegalArgumentException("Usuario no encontrado")))
+                                                    .flatMap(usuario -> rolRepository.getRolById(usuario.getRol().getUniqueId())
+                                                            .switchIfEmpty(Mono.error(new IllegalArgumentException("Rol no encontrado")))
+                                                            .flatMap(rol -> {
+                                                                System.out.println("Rol del usuario: " + rol.getNombre());
+                                                                if (rol.getUniqueId().intValue() != 1) {
+                                                                    return ServerResponse.status(HttpStatus.FORBIDDEN).build();
+                                                                }
+                                                                // Aquí puedes agregar lógica adicional para verificar permisos según el rol
+                                                                return next.handle(request); // 👈 SOLO pasa si usuario+rol existen
+                                                            })
+                                                    )
+                                    )
+                                    //TODO: Crear otro filtro, solo para validar que sea token valido y no sacar info del usuario
+                                    .switchIfEmpty(next.handle(request))
                     );
         } catch (Exception e) {
             return ServerResponse.status(HttpStatus.FORBIDDEN).build();

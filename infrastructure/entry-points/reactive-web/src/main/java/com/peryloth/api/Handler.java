@@ -152,22 +152,26 @@ public class Handler {
     }
 
     public Mono<ServerResponse> getUser(ServerRequest request) {
-        return request.bodyToMono(GetUserByDataRequestDTO.class).flatMap(dto ->
-                iGetUsuerByEmailUseCase.getUserByEmailAndDocument(dto.email())
-                        .flatMap(user -> {
-                            GetUserByDataResponseDTO responseDto = new GetUserByDataResponseDTO(
-                                    user.getEmail(),
-                                    user.getNombre() + " " + user.getApellido(),
-                                    user.getSalarioBase()
-                            );
-                            return ServerResponse.ok()
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .bodyValue(responseDto);
-                        })
-                        .switchIfEmpty(ServerResponse.status(404).bodyValue("Usuario no encontrado"))
-        ).onErrorResume(e -> {
-            log.error("Error al obtener usuario", e);
-            return ServerResponse.status(500).bodyValue("Error interno: " + e.getMessage());
-        });
+        return request.bodyToMono(GetUserByDataRequestDTO.class)
+                .doOnNext(e -> log.info(String.valueOf(e)))
+                .flatMap(dto ->
+                        iGetUsuerByEmailUseCase.getUserByEmailAndDocument(dto.email())
+                                .doOnNext(e -> log.info(String.valueOf(e)))
+                                .flatMap(user -> {
+                                    GetUserByDataResponseDTO responseDto = new GetUserByDataResponseDTO(
+                                            user.getEmail(),
+                                            user.getNombre() + " " + user.getApellido(),
+                                            user.getSalarioBase()
+                                    );
+                                    log.info(String.valueOf(responseDto));
+                                    return ServerResponse.ok()
+                                            .contentType(MediaType.APPLICATION_JSON)
+                                            .bodyValue(responseDto);
+                                })
+                                .switchIfEmpty(ServerResponse.status(404).bodyValue("Usuario no encontrado"))
+                ).onErrorResume(e -> {
+                    log.error("Error al obtener usuario", e);
+                    return ServerResponse.status(500).bodyValue("Error interno: " + e.getMessage());
+                });
     }
 }
