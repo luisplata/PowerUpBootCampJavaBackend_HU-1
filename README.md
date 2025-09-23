@@ -8,8 +8,9 @@
 
 ## TODO
 
-- Mejorar la covertura
-- Aplicar mas test unitarios
+- [ ] Mejorar la covertura
+- [ ] Aplicar mas test unitarios
+- [ ] Manejo de excepciones
 
 ### examples
 
