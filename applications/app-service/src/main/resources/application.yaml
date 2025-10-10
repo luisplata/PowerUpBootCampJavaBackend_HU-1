@@ -29,5 +29,5 @@ cors:
 auth:
   number-login-max: 5
 jwt:
-  secret: ${JWT_SECRET:bootcamp_java_super_secure_secret_key_123456}
+  secret: "${JWT_SECRET}"
   expiration: 3600000
